@@ -3,7 +3,6 @@ import aiocoap
 import threading
 import logging
 import asyncio
-#include json library
 import json
 
 class temperatureResource(resource.ObservableResource):
@@ -16,6 +15,7 @@ class temperatureResource(resource.ObservableResource):
         super().__init__()
 
         self.status = 0
+        self.humidity = 0
         self.has_observers = False
         self.notify_observers = False
 
@@ -38,8 +38,10 @@ class temperatureResource(resource.ObservableResource):
     async def render_get(self, request):
         response = {}
         tmp = str(self.status)
+        tmp2 = str(self.humidity)
         print('Return temperature state: %s' % tmp)
         response['temperature'] = tmp
+        response['humidity'] = tmp2
         json_tmp = json.dumps(response)
         #payload = b'%s' % tmp.encode('ascii')
         payload = json_tmp.encode('ascii')
@@ -51,11 +53,12 @@ class temperatureResource(resource.ObservableResource):
         #self.status =  request.payload.decode('ascii')
         msgJson = json.loads(request.payload.decode('ascii'))
         self.status = msgJson["temperature"]
+        self.humidity = msgJson["humidity"]
         #hum = msgJson["humidity"]
-        print('Receiving temperature state: %s ' % self.status)
+        print('Receiving temperature %s and humidity %s' % (self.status, self.humidity) )
         self.notify_observers = True
-
-        return aiocoap.Message(code=aiocoap.CHANGED, payload=b'%s' % str(self.status).encode("ascii"))
+        response = str(self.status) + ',' + str(self.humidity)
+        return aiocoap.Message(code=aiocoap.CHANGED, payload=b'%s' % response.encode("ascii"))
 
 logging.basicConfig(level=logging.INFO)
 logging.getLogger("coap-server").setLevel(logging.INFO) #logging.DEBUG
@@ -63,12 +66,14 @@ logging.getLogger("coap-server").setLevel(logging.INFO) #logging.DEBUG
 def main():
     # Resource tree creation
     root = resource.Site()
-    
-    root.add_resource(['temperature'], temperatureResource())
+    #ipserver = '10.100.229.33' #'192.168.174.2'
+    tempResource = temperatureResource()
+    root.add_resource(['temperature'], tempResource)
     asyncio.Task(aiocoap.Context.create_server_context(root, bind=('192.168.174.2', 5683)))
+    #asyncio.Task(aiocoap.Context.create_server_context(root, bind=('0.0.0.0', 5683)))
 
     # Spawn a daemon to notify observers when temperature status changes
-    observers_notifier = threading.Thread(target=temperatureResource.notify_observers_check)
+    observers_notifier = threading.Thread(target=tempResource.notify_observers_check)
     observers_notifier.daemon = True
     observers_notifier.start()
 
@@ -76,3 +81,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+    #loop = asyncio.new_event_loop()
+    #asyncio.set_event_loop(loop)
+    #try:
+    #    asyncio.run(main(loop=loop))
+    #except KeyboardInterrupt:
+    #    pass
