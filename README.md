@@ -28,4 +28,5 @@ Para ejecutar
 
 ### Coap Client - ESP32
 Dentro de la carpeta ESP32 se encuentran los archivos para realizar el deploy en el dispositivo ESP32.
-Nota: La carpeta ESP32 fue un intento fallido de implementarlo en el dispositivo ESP82.   
+
+Nota: La carpeta ESP38 fue un intento fallido de implementarlo en el dispositivo ESP82.   
